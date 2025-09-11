@@ -1,0 +1,51 @@
+name: Build, Push & Update Config
+
+on:
+  push:
+    tags:
+      - 'v*'   # e.g., v1.0.0, v2.3.4
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract tag name
+        id: vars
+        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ env.TAG }}
+
+      - name: Checkout config repository
+        uses: actions/checkout@v4
+        with:
+          repository: gajicdev/deploio-mysql-redis-s3-config
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: config
+
+      - name: Update Docker image tag in values.yaml
+        run: |
+          sed -i "s|^  tag: .*|  tag: \"${{ env.TAG }}\"|g" config/values.yaml
+          cd config
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add values.yaml
+          git commit -m "Update Docker image tag to ${{ env.TAG }}"
+          git push origin main
