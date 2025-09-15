@@ -109,7 +109,7 @@ $csrf = Util::csrfToken();
 <body>
   <div class="container">
     <header>
-      <div class="logo">📸 Image Uploader New</div>
+      <div class="logo">📸 Image Uploader</div>
       <form method="post" enctype="multipart/form-data">
         <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
         <input type="hidden" name="action" value="upload">
